@@ -1,0 +1,126 @@
+version: "3.7"
+services:
+# sudo chmod -R 777 . run this to install frappe
+  redis-cache:
+    image: docker.io/redis:alpine
+
+  redis-queue:
+    image: docker.io/redis:alpine
+
+
+  mariadb-master:
+    image: docker.io/mariadb:10.6
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_SERVER_ID: 1
+      MYSQL_LOG_BIN: "mysql-bin"
+      MYSQL_BINLOG_FORMAT: "ROW"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    volumes:
+      - mariadb-master-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  mariadb-slave1:
+    image: docker.io/mariadb:10.6
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_SERVER_ID: 2
+      MYSQL_LOG_BIN: "mysql-bin"
+      MYSQL_BINLOG_FORMAT: "ROW"
+      MYSQL_MASTER_HOST: mariadb-master
+      MYSQL_MASTER_PORT: 3306
+      MYSQL_MASTER_PASSWORD: 123
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    volumes:
+      - mariadb-slave1-data:/var/lib/mysql
+    depends_on:
+      - mariadb-master
+    ports:
+      - "3307:3306"
+
+  mariadb-slave2:
+    image: docker.io/mariadb:10.6
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_SERVER_ID: 3
+      MYSQL_LOG_BIN: "mysql-bin"
+      MYSQL_BINLOG_FORMAT: "ROW"
+      MYSQL_MASTER_HOST: mariadb-master
+      MYSQL_MASTER_PORT: 3306
+      MYSQL_MASTER_PASSWORD: 123
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    volumes:
+      - mariadb-slave2-data:/var/lib/mysql
+    depends_on:
+      - mariadb-master
+    ports:
+      - "3308:3306"
+
+
+  frappe1:
+    image: docker.io/frappe/bench:latest
+    command: sleep infinity
+    environment:
+      - SHELL=/bin/bash
+      - DATABASE_URL=mariadb://root:123@mariadb-master:3306/frappe
+    volumes:
+      - ..:/workspace:cached
+    working_dir: /workspace/development
+    ports:
+      - "8001:8000"
+
+
+
+  frappe2:
+    image: docker.io/frappe/bench:latest
+    command: sleep infinity
+    environment:
+      - SHELL=/bin/bash
+      - DATABASE_URL=mariadb://root:123@mariadb-master:3306/frappe
+    volumes:
+      - ..:/workspace:cached
+    working_dir: /workspace/development
+    ports:
+      - "8002:8000"
+   
+
+
+  frappe3:
+    image: docker.io/frappe/bench:latest
+    command: sleep infinity
+    environment:
+      - SHELL=/bin/bash
+      - DATABASE_URL=mariadb://root:123@mariadb-master:3306/frappe
+    volumes:
+      - ..:/workspace:cached
+    working_dir: /workspace/development
+    ports:
+      - "8003:8000"
+
+
+volumes:
+  mariadb-master-data:
+  mariadb-slave1-data:
+  mariadb-slave2-data:
+
+
+# UPDATE mysql.user SET Host = '%' where User = '_54cc49b9a1aab38b'; FLUSH PRIVILEGES;
+# SET PASSWORD FOR '_54cc49b9a1aab38b'@'%' = PASSWORD('cBZy6HMyoS4biT0Q'); FLUSH PRIVILEGES;
+# GRANT ALL PRIVILEGES ON `_54cc49b9a1aab38b`.* TO '54cc49b9a1aab38b'@'%'; FLUSH PRIVILEGES;
+# EXIT;
